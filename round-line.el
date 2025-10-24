@@ -73,6 +73,7 @@
 (column-number-mode 1)
 (setq-default mode-line-format
   `(
+    (:propertize " " face round-line-empty)
     (:propertize "" face round-line-sep)
     mode-line-modified mode-line-remote
     (:propertize "" face round-line-sep)
@@ -88,9 +89,12 @@
     (:propertize "" face round-line-sep)
     (:propertize " " face round-line-empty)
 
-    (:propertize "" face round-line-sep)
-    (vc-mode vc-mode)
-    (:propertize "" face round-line-sep)
+    (:eval
+     (when vc-mode
+       (concat
+        (propertize "" 'face 'round-line-sep)
+        (format "%s" vc-mode)
+        (propertize "" 'face 'round-line-sep))))
 
     ;; right-align spacer with your face
     (:eval
@@ -99,13 +103,26 @@
       'display
       `(space :align-to
               (- (+ right right-fringe right-margin)
-                 ,(+ 2 (string-width mode-name))))
+                 ,(+ 3 (string-width mode-name))))
       'face 'round-line-empty))
 
     (:propertize "" face round-line-sep)
     (:propertize "%m" 'face 'font-lock-string-face)
     (:propertize "" face round-line-sep)
+    (:propertize " " face round-line-empty)
     ))
+
+(advice-add #'vc-git-mode-line-string :filter-return #'round-line-git-status)
+(defun round-line-git-status (tstr)
+  (let* ((tstr (replace-regexp-in-string "Git" "" tstr))
+         (first-char (substring tstr 0 1))
+         (rest-chars (substring tstr 1)))
+    (cond
+     ((string= ":" first-char) ;;; Modified
+      (replace-regexp-in-string "^:" "✗ " tstr))
+     ((string= "-" first-char) ;; No change
+      (replace-regexp-in-string "^-" "✔ " tstr))
+     (t tstr))))
 
 (setopt mode-line-modified
         '((:eval
